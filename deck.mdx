@@ -1,0 +1,57 @@
+export { default as theme } from './theme';
+import { Notes } from 'mdx-deck';
+
+# Fantastic Asynchrony and How to Find It
+
+---
+
+# The problem
+
+Spawning any number of parallel jobs upon a datastore entitiy's
+property update <b>without interrupting the initial async operation</b>.
+
+<Notes>
+  It is often desired to trigger additional jobs based on an initial operation.
+  Often, those jobs require a chain of async/await calls to execute sequentially
+  in order to look up relevant properties for use in the newly spawned jobs.
+  Unfortunately, due to the way JS's event loop works, consuming async/await to
+  look up the data for those additional jobs would cause a delay in the initial
+  job's finalization. As such, a pattern is needed to spawn new tasks in
+  entirely different contexts.
+</Notes>
+
+---
+
+# Asynchronous patterns
+
+---
+
+# Promises
+
+---
+
+# Sequential Async Await
+
+---
+
+# Promise.all
+
+---
+
+# JS Proxy patterns
+
+---
+
+# Async/await in a transparent proxy
+
+---
+
+# Multithreaded async/await in a transparent proxy
+
+---
+
+# Proxy publisher
+
+---
+
+# The end

@@ -1,0 +1,14 @@
+{
+  "name": "async-proxy-threads",
+  "version": "0.0.1",
+  "main": "index.js",
+  "author": "jaycenhorton",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "start": "mdx-deck deck.mdx"
+  },
+  "devDependencies": {
+    "mdx-deck": "^2.0.0-11"
+  }
+}
