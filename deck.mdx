@@ -1,4 +1,5 @@
-export { default as theme } from './theme';
+export { default as themes } from './theme';
+
 import { Notes } from 'mdx-deck';
 
 # Fantastic Asynchrony and How to Find It
@@ -22,35 +23,221 @@ property update <b>without interrupting the initial async operation</b>.
 
 ---
 
-# Asynchronous patterns
+# todo: viz
 
 ---
 
-# Promises
+#### Asynchronous Pattern Exploration
+
+Note: condensed code/notes can be found here: https://github.com/jaycenhorton/async-explore
 
 ---
 
-# Sequential Async Await
+# todo: viz
 
 ---
 
-# Promise.all
+# Asynchronous JS
 
 ---
 
-# JS Proxy patterns
+#### Async/Await
+
+```js
+// async.js
+const asyncFunc = async () => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      console.log('5 second operation finishing in asyncFunc');
+      resolve();
+    }, 5000);
+  });
+};
+const exec = async time => {
+  await asyncFunc();
+  setTimeout(() => {
+    console.log('Finished 5 second operation in exec');
+    const end = process.hrtime.bigint();
+    console.log('Benchmark took %d nanoseconds', end - time);
+  }, 5000);
+};
+const time = process.hrtime.bigint();
+
+(async () => exec(time))();
+```
+
+```
+node --experimental-worker async
+Finished 5 second operation in asyncFunc
+Finished 5 second operation in exec
+Benchmark took 10012905082 nanoseconds
+```
+
+<Notes>
+  This demonstrates that the second `setTimeout` will not begin to process until
+  the first awaited promise is finished
+</Notes>
 
 ---
 
-# Async/await in a transparent proxy
+# todo: viz
 
 ---
 
-# Multithreaded async/await in a transparent proxy
+#### Promise.all
 
 ---
 
-# Proxy publisher
+# todo: viz
+
+---
+
+#### JS Proxy patterns
+
+---
+
+#### Async/await in a transparent proxy
+
+```js
+function traceMethodCalls(obj) {
+  const asyncFuncInProxy = async () =>
+    new Promise(resolve => {
+      setTimeout(() => {
+        console.log('Finished 5 second operation asyncFuncInProxy');
+        resolve();
+      }, 5000);
+    });
+
+  const handler = {
+    get(target, propKey, receiver) {
+      const targetValue = target[propKey];
+      return async function asyncProxy(...args) {
+        await asyncFuncInProxy();
+        return targetValue.apply(this, args);
+      };
+    },
+  };
+  return new Proxy(obj, handler);
+}
+
+const obj = {
+  async asyncFunc(time) {
+    setTimeout(() => {
+      console.log('Finished 5 second operation in asyncFunc');
+      const end = process.hrtime.bigint();
+      console.log(`Benchmark took %d nanoseconds`, end - time);
+    }, 5000);
+  },
+};
+
+const tracedObj = traceMethodCalls(obj);
+const time = process.hrtime.bigint();
+(async () => tracedObj.asyncFunc(time))();
+```
+
+```
+node --experimental-worker asyncProxy
+Finished 5 second operation asyncFuncInProxy
+Finished 5 second operation in asyncFunc
+Benchmark took 10008815778 nanoseconds
+```
+
+<Notes>
+  This demonstrates that the second `setTimeout` will not begin to process until
+  the first awaited promise is finished even though the first `setTimeout` only
+  exists in the context of the proxy.
+</Notes>
+
+---
+
+# todo: viz
+
+---
+
+#### Multithreaded async/await in a proxy
+
+```js
+function traceMethodCalls(obj) {
+  const handler = {
+    get(target, propKey, receiver) {
+      const targetValue = target[propKey];
+      return async function asyncProxy(...args) {
+        (async () => {
+          const { job, start, stop } = require('microjob');
+          try {
+            // start the worker pool
+            await start();
+            // this function will be executed in another thread
+            const resolvedJob = await job(
+              async data =>
+                new Promise(resolve => {
+                  setTimeout(() => {
+                    console.log('Finished 5 second operation asyncFuncInProxy');
+                    const end = process.hrtime.bigint();
+                    resolve(`Benchmark took %d nanoseconds`, end - data.time);
+                  }, 5000);
+                }),
+              { data: { time: args[0] } }
+            );
+            console.log(resolvedJob);
+          } catch (err) {
+            console.error(err);
+          } finally {
+            // shutdown worker pool
+            await stop();
+          }
+        })();
+        return targetValue.apply(this, args);
+      };
+    },
+  };
+  return new Proxy(obj, handler);
+}
+```
+
+---
+
+# todo: viz
+
+---
+
+#### Multithreaded async/await in a proxy cont.
+
+```js
+const obj = {
+  async asyncFunc(time) {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        console.log('Finished 5 second operation in asyncFunc');
+        resolve();
+      }, 5000);
+    });
+  },
+};
+
+const tracedObj = traceMethodCalls(obj);
+const time = process.hrtime.bigint();
+(async () => tracedObj.asyncFunc(time))();
+```
+
+```
+node --experimental-worker asyncProxyThread
+Finished 5 second operation in asyncFunc
+Finished 5 second operation asyncFuncInProxy
+Benchmark took 5108165406 nanoseconds
+```
+
+---
+
+# todo: viz
+
+---
+
+#### Proxy publisher
+
+---
+
+# todo: viz
 
 ---
 
