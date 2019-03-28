@@ -7,7 +7,8 @@
   "private": false,
   "scripts": {
     "start": "mdx-deck deck.mdx",
-    "build": "mdx-deck build deck.mdx",
+    "copy:static": "cp images dist -r",
+    "build": "mdx-deck build deck.mdx && npm run copy:static",
     "publish:deck": "gh-pages -d dist"
   },
   "devDependencies": {
