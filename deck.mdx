@@ -6,6 +6,16 @@ import { Notes, Image } from 'mdx-deck';
 
 ---
 
+So, you've got code like this:
+
+<img src="images/sync.gif" />
+
+and you want code like this:
+
+<img src="images/async.gif" />
+
+---
+
 # The problem
 
 Creating asynchrony is easy.
@@ -15,42 +25,78 @@ Coordinating asynchrony is hard.
 Distributing asynchrony is harder.
 
 <Notes>
-  It is often desired to trigger additional jobs based on an initial operation.
+
+- The best part about about asynchronous code is that it's asynchronous.
+
+- The worst part about asynchronous code is that it's asynchronous.
+
+--
+
+- It is often desired to trigger additional jobs based on an initial operation.
   Often, those jobs require a chain of async/await calls to execute sequentially
   in order to look up relevant properties for use in the newly spawned jobs.
-  Unfortunately, due to the way JS's event loop works, consuming async/await to
+
+- Unfortunately, due to the way JS's event loop works, consuming async/await to
   look up the data for those additional jobs would cause a delay in the initial
-  job's finalization. As such, a pattern is needed to spawn new tasks in
-  entirely different contexts.
+  job's finalization.
+
+- As such, a pattern is needed to spawn new tasks in entirely different contexts.
+
 </Notes>
 
 ---
 
-
 # Creating asynchrony is easy.
 
-
----
- “Let there be light”
-
 ---
 
-<Image  size="50%" src="images/0.png"/>
+Creating asynchrony is easy
 
+<img src="images/creating-async.gif" />
 
 ---
 
+Coordinating asynchrony is easy
 
-import { SplitRight } from 'mdx-deck/layouts'
+<img src="images/coordinated-async.gif" />
 
-export default SplitRight
+---
 
+Parallelizing asynchrony is easy
 
+<img src="images/parallel-async.gif" />
+
+---
+
+But what about in a real-world use case?
+
+---
+
+# _Let there be light_
+
+---
+
+<Image size="50%" src="images/0.png" />
+
+<Notes>
+
+When you start to build something, you start at the foundation.
+
+Consider a simple use case.
+
+You have a single data entity which has a function to update its data.
+
+</Notes>
+
+---
+
+import { SplitRight } from 'mdx-deck/layouts';
+
+export default SplitRight;
 
 <div style={{width:"90%"}}>
 
 ```typescript
-
 // Entity.ts
 
 interface EntityObject {
@@ -77,58 +123,85 @@ class Entity<T extends EntityObject> {
     const [response] = await GCloudDB().update(entityData);
     return <E>new (<typeof Entity>this.constructor)(entityData, req);
   }
-
 }
-
 ```
+
 </div>
 
-<img style={{width:"90%"}}  src="images/0.png"/>
+<img style={{ width: '90%' }} src="images/0.png" />
 
+<Notes>
+The code to interact with that data entity might looks something like this.
+
+It contains one function of note: update()
+
+That function is asynchronous so that we can await for that update to finish.
+
+When the update finishes, we return the entity with the updated data.
+
+</Notes>
 
 ---
 
 <img style={{width:"45%"}}  src="images/1.png"/>
-<div style={{width:"30%",  margin: "auto"}}>
+<div style={{width:"40%",  margin: "auto"}}>
 
 ```typescript
-
 const entity = new Entity({}); // create the entity
 
-(async () =>
-  entity.update({data:"some data"}))() // trigger an update to the entity
-
+entity.update({ data: 'some data' })); // trigger an update to the entity; don't await the result
 ```
+
 </div>
 
+<Notes>
+
+Consuming that function looks something like this.
+
+We create a reference to an entity, and then immediately invoke its logic.
+
+That logic fires, and begins to perform something elsewhere
+
+</Notes>
+
 ---
 
-<Image size="50%" src="images/3.png"/>
+<Image size="50%" src="images/3.png" />
+
+<Notes>
+
+Real applications aren't so simple.
+
+We have users on one end who are interested in waiting for the result.
+
+</Notes>
 
 ---
 
-<Image size="50%" src="images/4.png"/>
+<Image size="50%" src="images/4.png" />
+
+<Notes>
+
+And that result is expected to be presented when finished.
+
+</Notes>
 
 ---
 
-export default SplitRight
-
-
+export default SplitRight;
 
 <div style={{width:"90%"}}>
 
 ```js
-
 // updater.js
 
 const updateEntity = async () => {
   const entity = new Entity({}); // create the entity
-  const updatedEntity = await entity.update({data:"some data"}); // trigger an update to the entity
+  const updatedEntity = await entity.update({ data: 'some data' }); // trigger an update to the entity
   return updatedEntity;
-}
+};
 
 export default updateEntity;
-
 ```
 
 ```jsx
@@ -151,38 +224,71 @@ export default () => (
 )
 
 ```
+
 </div>
 
-<img style={{width:"90%"}}  src="images/4.png"/>
+<img style={{ width: '90%' }} src="images/4.png" />
+
+<Notes>
+
+That code might look like this.
+
+We have an async function that loads the entity.
+
+Then we trigger an update
+
+We await for the update to finish so we can grab the updated entity reference.
+
+We return that reference
+
+--
+
+In the UI's code, we have a button to trigger the update, and alert to display the updated entity.
+
+</Notes>
 
 ---
 
- ### But it's never quite that simple
+### But it's never quite that simple
+
+<Notes>
+
+# If only.
+
+Applications quickly grow from a foundational concept into complex models that contain relationships, connections, modules, and more
+
+</Notes>
 
 ---
 
+<Image size="50%" src="images/uml.png" />
 
-<Image size="50%" src="images/uml.png"/>
+<Notes>
+
+Let's examine the relationship of a more realistic entity model, one very similar to one I'm currently working with.
+
+Note that some of these data entities are linked to others in a relatively traditional relational DB way.
+
+As such, the thing to point out is that when we want to interact with some subset of an entity, we often start with the ID of one, and use that to traverse entities until we reach the subset we want to interact with.
+
+This is typically unavoidable as it would be unrealistic to always have the ID of the entity we need. This is because:
+
+- real user interactions are highly unpredictable.
+- some entities may not exist until after an intial action creates it
+- the more entities you keep in context, the higher the resource cost
+
+</Notes>
 
 ---
 
-
-
-
-
-export default SplitRight
-
-
+export default SplitRight;
 
 <div style={{width:"90%"}}>
 
-
 ```typescript
-
 // Entity.ts
 
 class Entity<T extends EntityObject> {
-
   // ...
 
   get id() {
@@ -212,8 +318,8 @@ abstract class EntDataStoreBackedLoader<
     return this.fromKey(GCloudDB().key(id), req);
   }
 }
-
 ```
+
 </div>
 
 <div>
@@ -221,21 +327,25 @@ abstract class EntDataStoreBackedLoader<
 <img style={{width:"90%"}}  src="images/uml.png"/>
 </div>
 
+<Notes>
+
+We might write code that looks like this to model the interactions between those entities
+
+We continue building on the Entity foundation, and extend it to create other entities with different data, yet share the same asynchronous update foundation.
+
+</Notes>
 
 ---
 
-<Image size="50%" src="images/5.png"/>
+<Image size="50%" src="images/5.png" />
 
 ---
 
-export default SplitRight
-
+export default SplitRight;
 
 <div style={{width:"80%"}}>
 
-
 ```typescript
-
 // EntReport
 
 export class EntReportLoader extends EntDataStoreBackedLoader<
@@ -245,7 +355,6 @@ export class EntReportLoader extends EntDataStoreBackedLoader<
   kind = 'Report';
   cls = EntReport;
 }
-
 ```
 
 ```typescript
@@ -271,41 +380,29 @@ export default class EntVerifierProfile extends Entity<EntVerifierProfileData> {
 ```
 
 ```js
-
 // getReport.js
 
 const getReport = async (verifierId, reportId) => {
   const verifier = await new EntVerifierProfileLoader().fromId(verifierId);
   const [report] = await verifier.projectVerificationRequests(reportId);
   return report;
-}
-
+};
 ```
+
 </div>
 
-<img style={{width:"90%"}}  src="images/6.png"/>
-
+<img style={{ width: '90%' }} src="images/6.png" />
 
 ---
 
-
-
-
-
 ###### Asynchronous calls which depend on the previous call to finish start to quickly add up
 
-
-
 ```js
-
-
 const getReport = async (verifierId, reportId) => {
   const verifier = await new EntVerifierProfileLoader().fromId(verifierId);
   const [report] = await verifier.projectVerificationRequests(reportId);
   return report;
-}
-
-
+};
 ```
 
 ---
@@ -314,11 +411,32 @@ Consider this more realistic data relationship interaction
 
 ---
 
-<Image size="50%" src="images/7.png"/>
+<Image size="50%" src="images/7.png" />
 
 ---
 
-<Image size="50%" src="images/8.png"/>
+<Image size="50%" src="images/8.png" />
+
+---
+
+At what point is using a traditional async pattern not enough?
+
+<Notes>
+  Where do we draw the line and say, "We need a multiple threads for this", or
+  "We need an additional microservice"
+</Notes>
+
+---
+
+Is it here?
+
+<img src="images/complex-async.gif" />
+
+---
+
+How about here?
+
+<img src="images/more-complex.gif" style={{ width: '80%' }} />
 
 ---
 
@@ -326,30 +444,27 @@ Consider this more realistic data relationship interaction
 
 Coordinating asynchrony is hard.
 
-Distributing asynchrony is harder.
-
-
 ---
 
 ### Writing asynchronous code is easy, and it's clean.
 
-
-
 ###### _Until it isn't._
 
+---
+
+<Image size="50%" src="images/micro0.png" />
 
 ---
 
-<Image size="50%" src="images/micro0.png"/>
+<Image size="50%" src="images/micro1.png" />
 
 ---
 
+It may take time to set up a centralized controller.
 
-<Image size="50%" src="images/micro1.png"/>
+###### But ultimately, you still have full control.
 
 ---
-
-
 
 ~~Creating asynchrony is easy~~
 
@@ -357,63 +472,57 @@ Distributing asynchrony is harder.
 
 Distributing asynchrony is harder.
 
+---
+
+<Image size="50%" src="images/micro2.png" />
 
 ---
 
-<Image size="50%" src="images/micro2.png"/>
+<Image size="50%" src="images/micro3.png" />
 
 ---
 
-<Image size="50%" src="images/micro3.png"/>
+<Image size="50%" src="images/micro4.png" />
 
 ---
 
-
-<Image size="50%" src="images/micro4.png"/>
-
----
-
-<Image size="50%" src="images/micro5.png"/>
+<Image size="50%" src="images/micro5.png" />
 
 ---
 
 At the Macro level, async/await control helps a lot.
 
-
-###### *But not without a pattern for concurrency*
-
+###### _But not without a pattern for concurrency_
 
 ---
 
-<Image size="50%" src="images/external0.png"/>
+<Image size="50%" src="images/external0.png" />
 
 ---
 
-<Image size="50%" src="images/external1.png"/>
+<Image size="50%" src="images/external1.png" />
 
 ---
 
-<Image size="50%" src="images/external2.png"/>
+<Image size="50%" src="images/external2.png" />
 
 ---
 
-<Image size="50%" src="images/external3.png"/>
+<Image size="50%" src="images/external3.png" />
 
 ---
 
-<Image size="50%" src="images/external4.png"/>
+<Image size="50%" src="images/external4.png" />
 
 ---
 
-<Image size="50%" src="images/external5.png"/>
+<Image size="50%" src="images/external5.png" />
 
 ---
 
 Pattern considerations
 
-
 ---
-
 
 How can we create patterns for concurrency and asynchronous execution at the microservice level?
 
@@ -431,21 +540,19 @@ How do we create a completely non-blocking workflow?
 
 ---
 
-How do we persist context in distributed asynchrony to prevent duplicate work?
+How do we persist context across distributed workflows whilst also preventing duplicate work?
+
+<Notes>
+  Passing messages is often not enough if you want to maintain relationships or
+  other context variables containing things like modules or asynchronus data
+  fetch results
+</Notes>
 
 ---
 
-#### Asynchronous Pattern Exploration
+## An Explortation of Asynchronous Patterns
 
 ###### Note: condensed code/notes can be found here: https://github.com/jaycenhorton/async-explore
-
----
-
-# todo: viz
-
----
-
-# Asynchronous JS
 
 ---
 
@@ -484,19 +591,29 @@ Benchmark took 10012905082 nanoseconds
 <Notes>
   This demonstrates that the second `setTimeout` will not begin to process until
   the first awaited promise is finished
+
+But often we don't want the user to wait on the results of the first to finish. How can we create an optimistic return value that gets updated only if the return value differs?
+
 </Notes>
 
 ---
 
-# todo: viz
+`Promise.all`
+
+<img src="images/parallel-async.gif" />
 
 ---
 
-#### Promise.all
+`Promise.all` is a godsend for executing tasks in parallel
 
----
+<Notes>
 
-# todo: viz
+But it isn't usefultwhen you need to chain an indeterminate number
+of additional async calls (with various lengths in run time) that are dependent on previous ones finishing.
+
+Often we need to spawn this in a different context. So long as the user isn't waiting on the results of one of those, that's ok.
+
+</Notes>
 
 ---
 
@@ -556,7 +673,6 @@ Benchmark took 10008815778 nanoseconds
   exists in the context of the proxy.
 </Notes>
 
-
 ---
 
 #### Multithreaded async/await in a proxy
@@ -602,10 +718,6 @@ function traceMethodCalls(obj) {
 
 ---
 
-# todo: viz
-
----
-
 #### Multithreaded async/await in a proxy cont.
 
 ```js
@@ -634,15 +746,17 @@ Benchmark took 5108165406 nanoseconds
 
 ---
 
-# todo: viz
-
----
-
 #### Proxy publisher
 
----
+<Notes>
 
-# todo: viz
+Using pub/sub pattern from within a transparent proxy is an interesting idea. It would mean a non-blocking workflow and a standardized pattern for message distribution.
+
+BUT
+
+How do we persist context? How do we avoid duplicate work?
+
+</Notes>
 
 ---
 
