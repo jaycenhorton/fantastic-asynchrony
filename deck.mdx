@@ -1,8 +1,8 @@
-export { default as themes } from './theme';
+export { default as theme } from './theme';
 
 import { Notes, Image } from 'mdx-deck';
 
-## Fantastic Asynchrony and How to Find It
+# Fantastic Asynchrony and How to Find It
 
 ---
 
@@ -128,7 +128,9 @@ class Entity<T extends EntityObject> {
 
 </div>
 
-<img style={{ width: '90%' }} src="images/0.png" />
+<div style={{ width: '90%', margin: 'auto' }}>
+  <img style={{ width: '100%' }} src="images/0.png" />
+</div>
 
 <Notes>
 The code to interact with that data entity might looks something like this.
@@ -143,15 +145,20 @@ When the update finishes, we return the entity with the updated data.
 
 ---
 
-<img style={{width:"45%"}}  src="images/1.png"/>
-<div style={{width:"40%",  margin: "auto"}}>
+export default SplitRight;
+
+<div style={{width:"90%",  margin: "auto"}}>
 
 ```typescript
 const entity = new Entity({}); // create the entity
 
-entity.update({ data: 'some data' })); // trigger an update to the entity; don't await the result
+entity.update({ data: 'some data' })); // trigger an update; don't await the result
 ```
 
+</div>
+
+<div style={{ width: '90%', margin: 'auto' }}>
+  <img style={{ width: '100%' }} src="images/1.png" />
 </div>
 
 <Notes>
@@ -197,7 +204,8 @@ export default SplitRight;
 
 const updateEntity = async () => {
   const entity = new Entity({}); // create the entity
-  const updatedEntity = await entity.update({ data: 'some data' }); // trigger an update to the entity
+  // trigger an update to the entity
+  const updatedEntity = await entity.update({ data: 'some data' });
   return updatedEntity;
 };
 
@@ -216,7 +224,8 @@ export default () => (
   <div>
     <button
       onClick={ async () => {
-        const updatedEntity = await updateEntity(); // waits for entity to finish updating
+        // waits for entity to finish updating
+        const updatedEntity = await updateEntity();
         alert(updatedEntity); // then alert the entity update in the UI
       }
     />
@@ -227,7 +236,9 @@ export default () => (
 
 </div>
 
-<img style={{ width: '90%' }} src="images/4.png" />
+<div style={{ width: '90%', margin: 'auto' }}>
+  <img style={{ width: '100%' }} src="images/4.png" />
+</div>
 
 <Notes>
 
@@ -322,9 +333,8 @@ abstract class EntDataStoreBackedLoader<
 
 </div>
 
-<div>
-
-<img style={{width:"90%"}}  src="images/uml.png"/>
+<div style={{ width: '90%', margin: 'auto' }}>
+  <img style={{ width: '90%' }} src="images/uml.png" />
 </div>
 
 <Notes>
@@ -369,7 +379,9 @@ export class EntVerifierProfileLoader extends EntDataStoreBackedLoader<
   cls = EntVerifierProfile;
 }
 
-export default class EntVerifierProfile extends Entity<EntVerifierProfileData> {
+export default class EntVerifierProfile extends Entity<
+  EntVerifierProfileData
+> {
   static kind = 'VerifierProfile';
   async function projectVerificationRequests(reportId) {
     const report = await new ReportLoader().fromId(reportId);
@@ -391,11 +403,13 @@ const getReport = async (verifierId, reportId) => {
 
 </div>
 
-<img style={{ width: '90%' }} src="images/6.png" />
+<div style={{ width: '90%', margin: 'auto' }}>
+  <img style={{ width: '90%' }} src="images/6.png" />
+</div>
 
 ---
 
-###### Asynchronous calls which depend on the previous call to finish start to quickly add up
+#### Asynchronous calls which depend on the previous call to finish start to quickly add up
 
 ```js
 const getReport = async (verifierId, reportId) => {
@@ -436,7 +450,7 @@ Is it here?
 
 How about here?
 
-<img src="images/more-complex.gif" style={{ width: '80%' }} />
+<img src="images/more-complex.gif" style={{ width: '100%' }} />
 
 ---
 
@@ -448,7 +462,7 @@ Coordinating asynchrony is hard.
 
 ### Writing asynchronous code is easy, and it's clean.
 
-###### _Until it isn't._
+##### _Until it isn't._
 
 ---
 
@@ -462,7 +476,7 @@ Coordinating asynchrony is hard.
 
 It may take time to set up a centralized controller.
 
-###### But ultimately, you still have full control.
+##### But ultimately, you still have full control.
 
 ---
 
@@ -492,7 +506,7 @@ Distributing asynchrony is harder.
 
 At the Macro level, async/await control helps a lot.
 
-###### _But not without a pattern for concurrency_
+##### _But not without a pattern for concurrency_
 
 ---
 
@@ -552,7 +566,7 @@ How do we persist context across distributed workflows whilst also preventing du
 
 ## An Explortation of Asynchronous Patterns
 
-###### Note: condensed code/notes can be found here: https://github.com/jaycenhorton/async-explore
+##### Note: condensed code/notes can be found here: https://github.com/jaycenhorton/async-explore
 
 ---
 
@@ -598,13 +612,13 @@ But often we don't want the user to wait on the results of the first to finish. 
 
 ---
 
-`Promise.all`
+"Promise.all"
 
 <img src="images/parallel-async.gif" />
 
 ---
 
-`Promise.all` is a godsend for executing tasks in parallel
+"Promise.all" is a godsend for executing tasks in parallel
 
 <Notes>
 
