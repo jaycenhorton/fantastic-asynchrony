@@ -18,4 +18,4 @@ With yarn
 
 or with NPM
 
-`npm run install`
+`npm run start`
