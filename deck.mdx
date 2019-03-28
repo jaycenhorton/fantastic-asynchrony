@@ -1,15 +1,18 @@
 export { default as themes } from './theme';
 
-import { Notes } from 'mdx-deck';
+import { Notes, Image } from 'mdx-deck';
 
-# Fantastic Asynchrony and How to Find It
+## Fantastic Asynchrony and How to Find It
 
 ---
 
 # The problem
 
-Spawning any number of parallel jobs upon a datastore entitiy's
-property update <b>without interrupting the initial async operation</b>.
+Creating asynchrony is easy.
+
+Coordinating asynchrony is hard.
+
+Distributing asynchrony is harder.
 
 <Notes>
   It is often desired to trigger additional jobs based on an initial operation.
@@ -23,13 +26,418 @@ property update <b>without interrupting the initial async operation</b>.
 
 ---
 
-# todo: viz
+
+# Creating asynchrony is easy.
+
+
+---
+ “Let there be light”
+
+---
+
+<Image  size="50%" src="images/0.png"/>
+
+
+---
+
+
+import { SplitRight } from 'mdx-deck/layouts'
+
+export default SplitRight
+
+
+
+<div style={{width:"90%"}}>
+
+```typescript
+
+// Entity.ts
+
+interface EntityObject {
+  [name: string]: any;
+}
+
+class Entity<T extends EntityObject> {
+  public static readonly kind: string;
+  protected readonly data: T;
+
+  constructor(data: T, req?: IViewerContext) {
+    this.data = data;
+  }
+
+  async update<T extends object, E extends Entity<T>>(
+    newData: T,
+    req?: IViewerContext
+  ) {
+    const entityData: object = {
+      ...(<object>this.data),
+      ...(<object>newData),
+      dateLastUpdated: new Date(Date.now()),
+    };
+    const [response] = await GCloudDB().update(entityData);
+    return <E>new (<typeof Entity>this.constructor)(entityData, req);
+  }
+
+}
+
+```
+</div>
+
+<img style={{width:"90%"}}  src="images/0.png"/>
+
+
+---
+
+<img style={{width:"45%"}}  src="images/1.png"/>
+<div style={{width:"30%",  margin: "auto"}}>
+
+```typescript
+
+const entity = new Entity({}); // create the entity
+
+(async () =>
+  entity.update({data:"some data"}))() // trigger an update to the entity
+
+```
+</div>
+
+---
+
+<Image size="50%" src="images/3.png"/>
+
+---
+
+<Image size="50%" src="images/4.png"/>
+
+---
+
+export default SplitRight
+
+
+
+<div style={{width:"90%"}}>
+
+```js
+
+// updater.js
+
+const updateEntity = async () => {
+  const entity = new Entity({}); // create the entity
+  const updatedEntity = await entity.update({data:"some data"}); // trigger an update to the entity
+  return updatedEntity;
+}
+
+export default updateEntity;
+
+```
+
+```jsx
+
+// Application.js
+
+import React from 'react';
+
+import updateEntity from './updater'
+
+export default () => (
+  <div>
+    <button
+      onClick={ async () => {
+        const updatedEntity = await updateEntity(); // waits for entity to finish updating
+        alert(updatedEntity); // then alert the entity update in the UI
+      }
+    />
+  </div>
+)
+
+```
+</div>
+
+<img style={{width:"90%"}}  src="images/4.png"/>
+
+---
+
+ ### But it's never quite that simple
+
+---
+
+
+<Image size="50%" src="images/uml.png"/>
+
+---
+
+
+
+
+
+export default SplitRight
+
+
+
+<div style={{width:"90%"}}>
+
+
+```typescript
+
+// Entity.ts
+
+class Entity<T extends EntityObject> {
+
+  // ...
+
+  get id() {
+    return this.key ? this.key.id : null;
+  }
+}
+
+interface EntLoaderConstructor<D extends object, T extends Entity<D>> {
+  new (): EntLoader<D, T>;
+}
+
+abstract class EntLoader<D extends object, T extends Entity<D>> {
+  abstract async fromId(
+    id: string | number | PathElement[],
+    req: IViewerContext
+  ): Promise<T>;
+}
+
+abstract class EntDataStoreBackedLoader<
+  D extends object,
+  T extends Entity<D>
+> extends EntLoader<D, T> {
+  kind: string;
+  cls: EntConstructor<D, T>;
+
+  async fromId(id: string | number | PathElement[], req: IViewerContext) {
+    return this.fromKey(GCloudDB().key(id), req);
+  }
+}
+
+```
+</div>
+
+<div>
+
+<img style={{width:"90%"}}  src="images/uml.png"/>
+</div>
+
+
+---
+
+<Image size="50%" src="images/5.png"/>
+
+---
+
+export default SplitRight
+
+
+<div style={{width:"80%"}}>
+
+
+```typescript
+
+// EntReport
+
+export class EntReportLoader extends EntDataStoreBackedLoader<
+  EntReportData,
+  EntReport
+> {
+  kind = 'Report';
+  cls = EntReport;
+}
+
+```
+
+```typescript
+
+// EntVerifierProfile
+
+export class EntVerifierProfileLoader extends EntDataStoreBackedLoader<
+  EntVerifierProfileData,
+  EntVerifierProfile
+> {
+  kind = 'VerifierProfile';
+  cls = EntVerifierProfile;
+}
+
+export default class EntVerifierProfile extends Entity<EntVerifierProfileData> {
+  static kind = 'VerifierProfile';
+  async function projectVerificationRequests(reportId) {
+    const report = await new ReportLoader().fromId(reportId);
+    return report;
+  }
+}
+
+```
+
+```js
+
+// getReport.js
+
+const getReport = async (verifierId, reportId) => {
+  const verifier = await new EntVerifierProfileLoader().fromId(verifierId);
+  const [report] = await verifier.projectVerificationRequests(reportId);
+  return report;
+}
+
+```
+</div>
+
+<img style={{width:"90%"}}  src="images/6.png"/>
+
+
+---
+
+
+
+
+
+###### Asynchronous calls which depend on the previous call to finish start to quickly add up
+
+
+
+```js
+
+
+const getReport = async (verifierId, reportId) => {
+  const verifier = await new EntVerifierProfileLoader().fromId(verifierId);
+  const [report] = await verifier.projectVerificationRequests(reportId);
+  return report;
+}
+
+
+```
+
+---
+
+Consider this more realistic data relationship interaction
+
+---
+
+<Image size="50%" src="images/7.png"/>
+
+---
+
+<Image size="50%" src="images/8.png"/>
+
+---
+
+~~Creating asynchrony is easy~~
+
+Coordinating asynchrony is hard.
+
+Distributing asynchrony is harder.
+
+
+---
+
+### Writing asynchronous code is easy, and it's clean.
+
+
+
+###### _Until it isn't._
+
+
+---
+
+<Image size="50%" src="images/micro0.png"/>
+
+---
+
+
+<Image size="50%" src="images/micro1.png"/>
+
+---
+
+
+
+~~Creating asynchrony is easy~~
+
+~~Coordinating asynchrony is hard.~~
+
+Distributing asynchrony is harder.
+
+
+---
+
+<Image size="50%" src="images/micro2.png"/>
+
+---
+
+<Image size="50%" src="images/micro3.png"/>
+
+---
+
+
+<Image size="50%" src="images/micro4.png"/>
+
+---
+
+<Image size="50%" src="images/micro5.png"/>
+
+---
+
+At the Macro level, async/await control helps a lot.
+
+
+###### *But not without a pattern for concurrency*
+
+
+---
+
+<Image size="50%" src="images/external0.png"/>
+
+---
+
+<Image size="50%" src="images/external1.png"/>
+
+---
+
+<Image size="50%" src="images/external2.png"/>
+
+---
+
+<Image size="50%" src="images/external3.png"/>
+
+---
+
+<Image size="50%" src="images/external4.png"/>
+
+---
+
+<Image size="50%" src="images/external5.png"/>
+
+---
+
+Pattern considerations
+
+
+---
+
+
+How can we create patterns for concurrency and asynchronous execution at the microservice level?
+
+---
+
+How can we handle distribution of tasks amongst resources?
+
+---
+
+How do we create consistent error handling?
+
+---
+
+How do we create a completely non-blocking workflow?
+
+---
+
+How do we persist context in distributed asynchrony to prevent duplicate work?
 
 ---
 
 #### Asynchronous Pattern Exploration
 
-Note: condensed code/notes can be found here: https://github.com/jaycenhorton/async-explore
+###### Note: condensed code/notes can be found here: https://github.com/jaycenhorton/async-explore
 
 ---
 
@@ -148,9 +556,6 @@ Benchmark took 10008815778 nanoseconds
   exists in the context of the proxy.
 </Notes>
 
----
-
-# todo: viz
 
 ---
 
